@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Leaf, ShoppingCart, Search, Filter } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for fertilizers
 const mockFertilizers = [
@@ -82,11 +83,14 @@ const Catalog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCrop, setSelectedCrop] = useState("");
   const [priceFilter, setPriceFilter] = useState("");
+  const { toast } = useToast();
 
   const filteredFertilizers = mockFertilizers.filter(fertilizer => {
     const matchesSearch = fertilizer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          fertilizer.composition.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCrop = !selectedCrop || fertilizer.suitableCrops.includes(selectedCrop);
+    const matchesCrop = !selectedCrop || fertilizer.suitableCrops.some(crop => 
+      crop.toLowerCase().includes(selectedCrop.toLowerCase())
+    );
     const matchesPrice = !priceFilter || 
                         (priceFilter === "low" && fertilizer.price < 40) ||
                         (priceFilter === "medium" && fertilizer.price >= 40 && fertilizer.price < 60) ||
@@ -96,8 +100,29 @@ const Catalog = () => {
   });
 
   const addToCart = (fertilizer: any) => {
-    console.log("Adding to cart:", fertilizer);
-    // Here you would integrate with your cart system
+    try {
+      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const existingItem = existingCart.find((item: any) => item.id === fertilizer.id);
+      
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        existingCart.push({ ...fertilizer, quantity: 1 });
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(existingCart));
+      
+      toast({
+        title: "Added to Cart",
+        description: `${fertilizer.name} has been added to your cart.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -159,14 +184,14 @@ const Catalog = () => {
                 <SelectValue placeholder="Filter by crop" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Crops</SelectItem>
-                <SelectItem value="Rice">Rice</SelectItem>
-                <SelectItem value="Wheat">Wheat</SelectItem>
-                <SelectItem value="Corn">Corn</SelectItem>
-                <SelectItem value="Cotton">Cotton</SelectItem>
-                <SelectItem value="Sugarcane">Sugarcane</SelectItem>
-                <SelectItem value="Vegetables">Vegetables</SelectItem>
-                <SelectItem value="Fruits">Fruits</SelectItem>
+                <SelectItem value="all">All Crops</SelectItem>
+                <SelectItem value="rice">Rice</SelectItem>
+                <SelectItem value="wheat">Wheat</SelectItem>
+                <SelectItem value="corn">Corn</SelectItem>
+                <SelectItem value="cotton">Cotton</SelectItem>
+                <SelectItem value="sugarcane">Sugarcane</SelectItem>
+                <SelectItem value="vegetables">Vegetables</SelectItem>
+                <SelectItem value="fruits">Fruits</SelectItem>
               </SelectContent>
             </Select>
             
@@ -175,7 +200,7 @@ const Catalog = () => {
                 <SelectValue placeholder="Filter by price" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Prices</SelectItem>
+                <SelectItem value="all">All Prices</SelectItem>
                 <SelectItem value="low">Under $40</SelectItem>
                 <SelectItem value="medium">$40 - $60</SelectItem>
                 <SelectItem value="high">Above $60</SelectItem>

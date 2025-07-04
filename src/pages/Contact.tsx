@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Leaf, ShoppingCart, Mail, Phone, MapPin } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -23,11 +24,58 @@ const Contact = () => {
     quantity: "",
     message: ""
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Contact form submission:", formData);
-    // Here you would integrate with your backend to send the request to admin
+    setIsLoading(true);
+
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Save request to localStorage (temporary until database is connected)
+      const requests = JSON.parse(localStorage.getItem('sellerRequests') || '[]');
+      const newRequest = {
+        id: Date.now(),
+        ...formData,
+        status: 'pending',
+        submittedAt: new Date().toISOString()
+      };
+      
+      requests.push(newRequest);
+      localStorage.setItem('sellerRequests', JSON.stringify(requests));
+
+      toast({
+        title: "Request Submitted Successfully!",
+        description: "Thank you for your submission. Our admin team will review your request and contact you within 2-3 business days.",
+      });
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        requestType: "",
+        productName: "",
+        composition: "",
+        suitableCrops: "",
+        price: "",
+        quantity: "",
+        message: ""
+      });
+
+    } catch (error) {
+      toast({
+        title: "Submission Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -278,10 +326,16 @@ const Contact = () => {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full">
-                    Submit Request
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Submitting Request..." : "Submit Request"}
                   </Button>
                 </form>
+
+                <div className="mt-6 p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Note:</strong> This is currently a demo. In production, requests would be sent to admin for approval and stored in a database.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>

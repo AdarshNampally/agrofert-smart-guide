@@ -1,12 +1,13 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Leaf } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -18,11 +19,81 @@ const Register = () => {
     phone: "",
     location: ""
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Registration attempt:", formData);
-    // Here you would integrate with your authentication system
+    setIsLoading(true);
+
+    try {
+      // Validation
+      if (formData.password !== formData.confirmPassword) {
+        toast({
+          title: "Registration Failed",
+          description: "Passwords do not match.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (formData.password.length < 6) {
+        toast({
+          title: "Registration Failed",
+          description: "Password must be at least 6 characters long.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Save user to localStorage (temporary until database is connected)
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      
+      // Check if user already exists
+      if (users.some((u: any) => u.email === formData.email)) {
+        toast({
+          title: "Registration Failed",
+          description: "An account with this email already exists.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const newUser = {
+        id: Date.now(),
+        name: formData.name,
+        email: formData.email,
+        password: formData.password, // In production, this should be hashed
+        userType: formData.userType,
+        phone: formData.phone,
+        location: formData.location,
+        createdAt: new Date().toISOString()
+      };
+
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
+
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created successfully!",
+      });
+
+      // Redirect to login
+      navigate('/login');
+      
+    } catch (error) {
+      toast({
+        title: "Registration Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -128,8 +199,8 @@ const Register = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full">
-              Create Account
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
           
